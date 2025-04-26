@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-chi/chi/v5"
 
-	"github.com/MatheusOliveiraSilva/chat-with-docs/apps/upload-service/config"
-	"github.com/MatheusOliveiraSilva/chat-with-docs/apps/upload-service/handler"
+	"github.com/MatheusOliveiraSilva/chat-with-docs/apps/upload-service/modules/config"
+	"github.com/MatheusOliveiraSilva/chat-with-docs/apps/upload-service/modules/handler"
 )
 
 func main() {
