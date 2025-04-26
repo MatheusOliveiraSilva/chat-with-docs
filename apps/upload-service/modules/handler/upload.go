@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -10,21 +9,19 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
+	s3Util "github.com/MatheusOliveiraSilva/chat-with-docs/apps/upload-service/modules/s3"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/google/uuid"
 )
 
 type UploadHandler struct {
-	Uploader *manager.Uploader
-	Bucket   string
+	s3Uploader *s3Util.Uploader
 }
 
 func NewUploadHandler(u *manager.Uploader, bucket string) *UploadHandler {
-	return &UploadHandler{Uploader: u, Bucket: bucket}
+	return &UploadHandler{
+		s3Uploader: s3Util.NewUploader(u, bucket),
+	}
 }
 
 func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +47,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4. Send to S3 and get location
-	location, err := h.uploadToS3(r.Context(), tmpFile)
+	location, err := h.s3Uploader.UploadFile(r.Context(), tmpFile)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("s3: %v", err), http.StatusBadGateway)
 		return
@@ -105,26 +102,6 @@ func hashAndSave(src io.ReadCloser, tmp *os.File) (string, int64, error) {
 
 	// Returns hash in hex and size in bytes
 	return hex.EncodeToString(hasher.Sum(nil)), written, nil
-}
-
-// uploadToS3 executes the multipart upload and returns the object URL
-func (h *UploadHandler) uploadToS3(ctx context.Context, tmp *os.File) (string, error) {
-	fileID := uuid.NewString()
-	key := filepath.Join("raw", fileID)
-
-	// Timeout of 30 minutes for the entire upload
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-	defer cancel()
-
-	out, err := h.Uploader.Upload(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(h.Bucket),
-		Key:    aws.String(key),
-		Body:   tmp,
-	})
-	if err != nil {
-		return "", err
-	}
-	return out.Location, nil
 }
 
 // respondJSON sends the final response to the client
