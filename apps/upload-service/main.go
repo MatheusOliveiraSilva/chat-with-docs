@@ -16,27 +16,27 @@ import (
 )
 
 func main() {
-	// 1. Carrega configurações de ambiente (bucket, região)
+	// 1. load config
 	cfg := config.Load()
 
-	// 2. Inicializa AWS SDK com credenciais automáticas
+	// 2. initialize AWS SDK with automatic credentials
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithRegion(cfg.Region))
 	if err != nil {
 		log.Fatalf("failed to load AWS config: %v", err)
 	}
 	s3Client := s3.NewFromConfig(awsCfg)
 
-	// 3. Cria uploader para multipart no S3
+	// 3. create uploader for multipart in S3
 	uploader := manager.NewUploader(s3Client)
 
-	// 4. Instancia o upload handler com dependências inj intern
+	// 4. create upload handler with dependencies injected internally
 	uploadHandler := handler.NewUploadHandler(uploader, cfg.Bucket)
 
-	// 5. Configura roteamento com Chi
+	// 5. configure routing with Chi
 	r := chi.NewRouter()
 	r.Post("/v1/upload", uploadHandler.ServeHTTP)
 
-	// 6. Inicia o servidor HTTP
+	// 6. start HTTP server
 	addr := ":8080"
 	fmt.Printf("Upload-service listening on %s\n", addr)
 	if err := http.ListenAndServe(addr, r); err != nil {
